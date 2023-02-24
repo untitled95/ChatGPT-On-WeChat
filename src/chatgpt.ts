@@ -13,7 +13,7 @@ const ChatGPTModelConfig = {
   model: "text-davinci-003",
   // add your ChatGPT model parameters below
   temperature: 0.3,
-  max_tokens: 2000,
+  max_tokens: 4000,
 };
 
 // message size for a single reply by the bot
@@ -58,7 +58,7 @@ export class ChatGPTBot {
   // in group chat, replace the special character after "@username" to space
   // to prevent cross-platfrom mention issue
   get chatGroupTriggerKeyword(): string {
-    return `@${this.botName} ${this.chatgptTriggerKeyword || ""}`;
+    return `${this.chatgptTriggerKeyword || "@bot"}`;
   }
 
   // configure API with model API keys and run an initial test
@@ -105,23 +105,23 @@ export class ChatGPTBot {
   triggerGPTMessage(text: string, isPrivateChat: boolean = false): boolean {
     const chatgptTriggerKeyword = this.chatgptTriggerKeyword;
     let triggered = false;
-    if (isPrivateChat) {
-      triggered = chatgptTriggerKeyword
-        ? text.startsWith(chatgptTriggerKeyword)
-        : true;
-    } else {
-      // due to un-unified @ lagging character, ignore it and just match:
-      //    1. the "@username" (mention)
-      //    2. trigger keyword
-      // start with @username
-      const textMention = `@${this.botName}`;
-      const startsWithMention = text.startsWith(textMention);
-      const textWithoutMention = text.slice(textMention.length + 1);
-      const followByTriggerKeyword = textWithoutMention.startsWith(
-        this.chatgptTriggerKeyword
-      );
-      triggered = startsWithMention && followByTriggerKeyword;
-    }
+    // if (isPrivateChat) {
+    triggered = chatgptTriggerKeyword
+      ? text.startsWith(chatgptTriggerKeyword)
+      : true;
+    // } else {
+    //   // due to un-unified @ lagging character, ignore it and just match:
+    //   //    1. the "@username" (mention)
+    //   //    2. trigger keyword
+    //   // start with @username
+    //   const textMention = `@${this.botName}`;
+    //   const startsWithMention = text.startsWith(textMention);
+    //   const textWithoutMention = text.slice(textMention.length + 1);
+    //   const followByTriggerKeyword = textWithoutMention.startsWith(
+    //     this.chatgptTriggerKeyword
+    //   );
+    //   triggered = startsWithMention && followByTriggerKeyword;
+    // }
     if (triggered) {
       console.log(`🎯 Chatbot triggered: ${text}`);
     }
@@ -136,7 +136,7 @@ export class ChatGPTBot {
   ): boolean {
     return (
       // self-chatting can be used for testing
-      talker.self() ||
+      // talker.self() ||
       messageType != MessageType.Text ||
       talker.name() == "微信团队" ||
       // video or voice reminder
@@ -193,8 +193,9 @@ export class ChatGPTBot {
   async onPrivateMessage(talker: ContactInterface, text: string) {
     // get reply from ChatGPT
     const chatgptReplyMessage = await this.onChatGPT(text);
+    const formattedReplyMessage = "ChatGPT:"+ chatgptReplyMessage;
     // send the ChatGPT reply to chat
-    await this.reply(talker, chatgptReplyMessage);
+    await this.reply(talker, formattedReplyMessage);
   }
 
   // reply to group message
@@ -202,7 +203,7 @@ export class ChatGPTBot {
     // get reply from ChatGPT
     const chatgptReplyMessage = await this.onChatGPT(text);
     // the whole reply consist of: original text and bot reply
-    const wholeReplyMessage = `${text}\n----------\n${chatgptReplyMessage}`;
+    const wholeReplyMessage = `${text}\n----------\nChatGPT: ${chatgptReplyMessage}`;
     await this.reply(room, wholeReplyMessage);
   }
 
@@ -229,20 +230,6 @@ export class ChatGPTBot {
       return await this.onPrivateMessage(talker, text);
     } else {
       return await this.onGroupMessage(room, text);
-    }
-  }
-
-  // handle message for customized task handlers
-  async onCustimzedTask(message: Message) {
-    // e.g. if a message starts with "麦扣", the bot sends "🤖️：call我做咩啊大佬!"
-    const myKeyword = "麦扣";
-    if (message.text().includes(myKeyword)) {
-      const myTaskContent = `回复所有含有"${myKeyword}"的消息`
-      const myReply = "🤖️：call我做咩啊大佬";
-      await message.say(myReply);
-      console.log(`🎯 Customized task triggered: ${myTaskContent}`);
-      console.log(`🤖️ Chatbot says: ${myReply}`);
-      return;
     }
   }
 }
