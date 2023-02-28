@@ -13,11 +13,11 @@ const ChatGPTModelConfig = {
   model: "text-davinci-003",
   // add your ChatGPT model parameters below
   temperature: 0.3,
-  max_tokens: 4000,
+  max_tokens: 2048,
 };
 
 // message size for a single reply by the bot
-const SINGLE_MESSAGE_MAX_SIZE = 500;
+const SINGLE_MESSAGE_MAX_SIZE = 2048;
 
 enum MessageType {
   Unknown = 0,
@@ -175,10 +175,9 @@ export class ChatGPTBot {
   // reply with the segmented messages from a single-long message
   async reply(
     talker: RoomInterface | ContactInterface,
-    mesasge: string
+    message: string
   ): Promise<void> {
     const messages: Array<string> = [];
-    let message = mesasge;
     while (message.length > SINGLE_MESSAGE_MAX_SIZE) {
       messages.push(message.slice(0, SINGLE_MESSAGE_MAX_SIZE));
       message = message.slice(SINGLE_MESSAGE_MAX_SIZE);
@@ -193,7 +192,7 @@ export class ChatGPTBot {
   async onPrivateMessage(talker: ContactInterface, text: string) {
     // get reply from ChatGPT
     const chatgptReplyMessage = await this.onChatGPT(text);
-    const formattedReplyMessage = "ChatGPT:"+ chatgptReplyMessage;
+    const formattedReplyMessage = "🤖️:"+ chatgptReplyMessage;
     // send the ChatGPT reply to chat
     await this.reply(talker, formattedReplyMessage);
   }
@@ -203,7 +202,7 @@ export class ChatGPTBot {
     // get reply from ChatGPT
     const chatgptReplyMessage = await this.onChatGPT(text);
     // the whole reply consist of: original text and bot reply
-    const wholeReplyMessage = `${text}\n----------\nChatGPT: ${chatgptReplyMessage}`;
+    const wholeReplyMessage = `${text}\n----------\n🤖️: ${chatgptReplyMessage}`;
     await this.reply(room, wholeReplyMessage);
   }
 
