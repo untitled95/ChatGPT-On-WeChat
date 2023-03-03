@@ -10,10 +10,11 @@ const chatgptErrorMessage = "🤖️：AI机器人摆烂了，请稍后再试～
 // please refer to the OpenAI API doc: https://beta.openai.com/docs/api-reference/introduction
 const ChatGPTModelConfig = {
   // this model field is required
-  model: "text-davinci-003",
+  model: "gpt-3.5-turbo",
   // add your ChatGPT model parameters below
-  temperature: 0.3,
+  temperature: 0.7,
   max_tokens: 2048,
+  n: 1,
 };
 
 // message size for a single reply by the bot
@@ -87,7 +88,7 @@ export class ChatGPTBot {
     }
   }
 
-  // get clean message by removing reply separater and group mention characters
+  // get clean message by removing reply separator and group mention characters
   cleanMessage(rawText: string, isPrivateChat: boolean = false): string {
     let text = rawText;
     const item = rawText.split("- - - - - - - - - - - - - - -");
@@ -149,16 +150,16 @@ export class ChatGPTBot {
   }
 
   // send question to ChatGPT with OpenAI API and get answer
-  async onChatGPT(text: string): Promise<string> {
-    const inputMessage = this.applyContext(text);
+  async onChatGPT(text: string, talker?: any): Promise<string> {
+    const userInputMessage = this.applyContext(text);
     try {
       // config OpenAI API request body
-      const response = await this.OpenAI.createCompletion({
+      const response = await this.OpenAI.createChatCompletion({
         ...ChatGPTModelConfig,
-        prompt: inputMessage,
+        messages: [{ role: "user", content: userInputMessage }],
       });
       // use OpenAI API to get ChatGPT reply message
-      const chatgptReplyMessage = response?.data?.choices[0]?.text?.trim();
+      const chatgptReplyMessage = response?.data?.choices[0].message?.content?.trim();
       console.log("🤖️ Chatbot says: ", chatgptReplyMessage);
       return chatgptReplyMessage;
     } catch (e: any) {
@@ -191,8 +192,8 @@ export class ChatGPTBot {
   // reply to private message
   async onPrivateMessage(talker: ContactInterface, text: string) {
     // get reply from ChatGPT
-    const chatgptReplyMessage = await this.onChatGPT(text);
-    const formattedReplyMessage = "🤖️:"+ chatgptReplyMessage;
+    const chatgptReplyMessage = await this.onChatGPT(text, talker);
+    const formattedReplyMessage = "🤖️:" + chatgptReplyMessage;
     // send the ChatGPT reply to chat
     await this.reply(talker, formattedReplyMessage);
   }
@@ -200,7 +201,7 @@ export class ChatGPTBot {
   // reply to group message
   async onGroupMessage(room: RoomInterface, text: string) {
     // get reply from ChatGPT
-    const chatgptReplyMessage = await this.onChatGPT(text);
+    const chatgptReplyMessage = await this.onChatGPT(text, "");
     // the whole reply consist of: original text and bot reply
     const wholeReplyMessage = `${text}\n----------\n🤖️: ${chatgptReplyMessage}`;
     await this.reply(room, wholeReplyMessage);
@@ -227,7 +228,8 @@ export class ChatGPTBot {
     // reply to private or group chat
     if (isPrivateChat) {
       return await this.onPrivateMessage(talker, text);
-    } else {
+    }
+    else {
       return await this.onGroupMessage(room, text);
     }
   }
